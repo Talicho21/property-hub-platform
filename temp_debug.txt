@@ -1,0 +1,100 @@
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+
+export default function Dashboard() {
+  const { user, logout, api, API } = useAuth();
+  const normalizedRole = String(user?.role || '').trim().toUpperCase();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [feedLoading, setFeedLoading] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [properties, setProperties] = useState([]);
+  const [pendingLandlords, setPendingLandlords] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [userFilter, setUserFilter] = useState('ALL'); // 'ALL', 'TENANT', 'LANDLORD'
+  const [editingUser, setEditingUser] = useState(null);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [feedError, setFeedError] = useState('');
+  const [adminError, setAdminError] = useState('');
+  const [adminSuccess, setAdminSuccess] = useState('');
+
+  // Property Form State
+  const [propertyData, setPropertyData] = useState({
+    title: '',
+    description: '',
+    price: '',
+    location: ''
+  });
+  const [images, setImages] = useState([]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setPropertyData({ ...propertyData, [name]: value });
+  };
+
+  useEffect(() => {
+    const loadProperties = async () => {
+      // Allow all roles to load properties into the feed
+      if (!['TENANT', 'LANDLORD', 'ADMIN'].includes(normalizedRole)) return;
+
+      setFeedLoading(true);
+      setFeedError('');
+
+      try {
+        if (!api) throw new Error('API client not available (AuthContext missing api)');
+        const response = await api.get('/properties');
+        setProperties(Array.isArray(response.data) ? response.data : []);
+      } catch (err) {
+        setFeedError(err.response?.data?.message || err.message || 'Unable to load discovery feed.');
+      } finally {
+        setFeedLoading(false);
+      }
+    };
+
+    loadProperties();
+  }, [api, normalizedRole]);
+
+  useEffect(() => {
+    const loadAdminData = async () => {
+      if (normalizedRole !== 'ADMIN') return;
+      setAdminLoading(true);
+      try {
+        const [pendingRes, usersRes] = await Promise.all([
+          api.get('/admin/pending-landlords'),
+          api.get('/admin/users')
+        ]);
+        setPendingLandlords(Array.isArray(pendingRes.data) ? pendingRes.data : []);
+        setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+      } catch (err) {
+        setAdminError(err.response?.data?.message || err.message || 'Unable to load admin data.');
+      } finally {
+        setAdminLoading(false);
+      }
+    };
+    loadAdminData();
+  }, [api, normalizedRole]);
+
+  const handleGlobalRefresh = async () => {
+    setRefreshing(true);
+    try {
+      if (normalizedRole === 'TENANT') {
+        const res = await api.get('/properties');
+        setProperties(Array.isArray(res.data) ? res.data : []);
+      } else if (normalizedRole === 'LANDLORD') {
+        const res = await api.get('/properties');
+        setProperties(Array.isArray(res.data) ? res.data : []);
+      } else if (normalizedRole === 'ADMIN') {
+        const [pRes, uRes, lRes] = await Promise.all([
+          api.get('/properties'),
+          api.get('/admin/users'),
+          api.get('/admin/pending-landlords')
+        ]);
+        setProperties(Array.isArray(pRes.data) ? pRes.data : []);
+        setUsers(Array.isArray(uRes.data) ? uRes.data : []);
+        setPendingLandlords(Array.isArray(lRes.data) ? lRes.data : []);
+      }
+    } catch (err) {
+      console.error('Refresh failed:', err);
