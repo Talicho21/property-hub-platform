@@ -1,7 +1,18 @@
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
 const allowedRoles = ['TENANT', 'LANDLORD', 'ADMIN'];
+
+const parseImages = (images) => {
+  if (!images) return [];
+  if (Array.isArray(images)) return images;
+  try {
+    return JSON.parse(images);
+  } catch {
+    return [];
+  }
+};
 
 const isAdmin = (user) => user?.role === 'ADMIN';
 
@@ -42,13 +53,13 @@ const createProperty = async (req, res) => {
         description: description.trim(),
         price: parsedPrice,
         location: location.trim(),
-        images,
+        images: JSON.stringify(images),
         isPublished: true,
         landlordId: req.user.id,
       },
     });
 
-    res.status(201).json({ message: 'Property created successfully', property });
+    res.status(201).json({ message: 'Property created successfully', property: { ...property, images } });
   } catch (error) {
     res.status(500).json({ message: 'Failed to create listing', error: error.message });
   }
@@ -82,7 +93,11 @@ const getAllProperties = async (req, res) => {
         }
       }
     });
-    return res.status(200).json(Array.isArray(properties) ? properties : []);
+    const normalizedProperties = (Array.isArray(properties) ? properties : []).map((property) => ({
+      ...property,
+      images: parseImages(property.images),
+    }));
+    return res.status(200).json(normalizedProperties);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to retrieve listings', error: error.message });
   }
@@ -114,7 +129,7 @@ const getPropertyById = async (req, res) => {
 		return res.status(404).json({ message: 'Property not found' });
 	}
 
-    return res.json(property);
+    return res.json({ ...property, images: parseImages(property.images) });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to retrieve listing', error: error.message });
   }
@@ -163,7 +178,7 @@ const updateProperty = async (req, res) => {
     }
 
     if (Array.isArray(req.imageUrls) && req.imageUrls.length > 0) {
-      updates.images = req.imageUrls.filter((url) => typeof url === 'string' && url.startsWith('https://'));
+      updates.images = JSON.stringify(req.imageUrls.filter((url) => typeof url === 'string' && url.startsWith('https://')));
     }
 
     if (isPublished !== undefined) {
@@ -181,7 +196,7 @@ const updateProperty = async (req, res) => {
       data: updates,
     });
 
-    return res.json({ message: 'Property updated successfully', property: updatedProperty });
+    return res.json({ message: 'Property updated successfully', property: { ...updatedProperty, images: parseImages(updatedProperty.images) } });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to update listing', error: error.message });
   }

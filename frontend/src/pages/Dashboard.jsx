@@ -62,6 +62,8 @@ export default function Dashboard() {
     const loadAdminData = async () => {
       if (normalizedRole !== 'ADMIN') return;
       setAdminLoading(true);
+      setAdminError('');
+      setAdminSuccess('');
       try {
         const [pendingRes, usersRes] = await Promise.all([
           api.get('/admin/pending-landlords'),
@@ -80,6 +82,8 @@ export default function Dashboard() {
 
   const handleGlobalRefresh = async () => {
     setRefreshing(true);
+    setAdminError('');
+    setAdminSuccess('');
     try {
       if (normalizedRole === 'TENANT') {
         const res = await api.get('/properties');
@@ -98,7 +102,7 @@ export default function Dashboard() {
         setPendingLandlords(Array.isArray(lRes.data) ? lRes.data : []);
       }
     } catch (err) {
-      console.error('Refresh failed:', err);
+      setAdminError(`Refresh failed: ${err.response?.data?.message || err.message || 'Unable to refresh data'}`);
     } finally {
       setTimeout(() => setRefreshing(false), 600);
     }
@@ -106,9 +110,11 @@ export default function Dashboard() {
 
   const handleUpdateUser = async (userId, data) => {
     try {
+      setAdminError('');
+      setAdminSuccess('');
       await api.put(`/admin/users/${userId}`, data);
       setAdminSuccess('User updated successfully');
-      handleGlobalRefresh();
+      await handleGlobalRefresh();
       setIsUserModalOpen(false);
     } catch (err) {
       setAdminError(err.response?.data?.message || 'Update failed');
@@ -118,9 +124,11 @@ export default function Dashboard() {
   const handleDeleteUser = async (userId) => {
     if (!window.confirm('Are you sure you want to permanently delete this user?')) return;
     try {
+      setAdminError('');
+      setAdminSuccess('');
       await api.delete(`/admin/users/${userId}`);
       setAdminSuccess('User removed from database');
-      handleGlobalRefresh();
+      await handleGlobalRefresh();
     } catch (err) {
       setAdminError(err.response?.data?.message || 'Deletion failed');
     }
@@ -672,8 +680,9 @@ export default function Dashboard() {
                                   </button>
                                   <button 
                                     onClick={() => handleDeleteUser(u.id)}
-                                    className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
-                                    title="Delete User"
+                                    disabled={u.id === user?.id}
+                                    className={`p-2 rounded-lg transition-colors ${u.id === user?.id ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'hover:bg-red-50 text-red-600'}`}
+                                    title={u.id === user?.id ? 'Cannot delete your own account' : 'Delete User'}
                                   >
                                     🗑️
                                   </button>

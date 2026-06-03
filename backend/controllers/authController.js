@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 
 const prisma = new PrismaClient();
 
@@ -54,6 +55,7 @@ const register = async (req, res) => {
 		const token = signToken(user.id, user.role);
 		return res.status(201).json({ message: 'Registration successful', token, user });
 	} catch (error) {
+		console.error('Registration error:', error);
 		return res.status(500).json({ message: 'Registration failed', error: error.message });
 	}
 };
@@ -62,25 +64,32 @@ const login = async (req, res) => {
 	try {
 		const { email, password } = req.body;
 
+		console.log(`🔐 Login attempt for: ${email}`);
+
 		if (!email || !password) {
 			return res.status(400).json({ message: 'Email and password are required' });
 		}
 
 		const user = await prisma.user.findUnique({ where: { email } });
 		if (!user) {
+			console.log(`❌ User not found: ${email}`);
 			return res.status(401).json({ message: 'Invalid credentials' });
 		}
 
 		const isMatch = await bcrypt.compare(password, user.password);
 		if (!isMatch) {
+			console.log(`❌ Invalid password for: ${email}`);
 			return res.status(401).json({ message: 'Invalid credentials' });
 		}
 
 		if (user.role === 'LANDLORD' && !user.isApproved) {
+			console.log(`⚠️ Pending approval for landlord: ${email}`);
 			return res.status(403).json({ message: 'Your Landlord account registration is pending Admin approval.' });
 		}
 
 		const token = signToken(user.id, user.role);
+		console.log(`✅ Login successful: ${email}`);
+		
 		return res.status(200).json({
 			message: 'Login successful',
 			token,
@@ -93,6 +102,7 @@ const login = async (req, res) => {
 			},
 		});
 	} catch (error) {
+		console.error('Login error:', error);
 		return res.status(500).json({ message: 'Login failed', error: error.message });
 	}
 };
@@ -207,11 +217,47 @@ const updateUser = async (req, res) => {
 const deleteUser = async (req, res) => {
 	try {
 		const { id } = req.params;
+
+		// Check if user exists
+		const user = await prisma.user.findUnique({ where: { id } });
+		if (!user) {
+			return res.status(404).json({ message: 'User not found' });
+		}
+
+		// Prevent admins from deleting their own account from the dashboard
+		if (req.user?.id === id) {
+			return res.status(400).json({ message: 'You cannot delete your own account while logged in. Ask another admin to remove you.' });
+		}
+
+		// Delete all properties owned by the user first (cascade delete)
+		await prisma.property.deleteMany({
+			where: { landlordId: id }
+		});
+
+		// Then delete the user
 		await prisma.user.delete({ where: { id } });
-		return res.status(200).json({ message: 'User deleted successfully' });
+
+		return res.status(200).json({ 
+			message: 'User and associated properties deleted successfully',
+			deletedUser: {
+				id: user.id,
+				email: user.email,
+				name: user.name,
+				role: user.role
+			}
+		});
 	} catch (error) {
+		console.error('Delete user error:', error);
 		return res.status(500).json({ message: 'Failed to delete user', error: error.message });
 	}
 };
 
-export { register, login, getAllUsers, updateUser, deleteUser, getPendingLandlords, approveLandlord };
+export { 
+  register, 
+  login, 
+  getAllUsers, 
+  updateUser, 
+  deleteUser, 
+  getPendingLandlords, 
+  approveLandlord 
+};

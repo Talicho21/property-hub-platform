@@ -1,6 +1,12 @@
 import multer from 'multer';
 import cloudinary from '../config/cloudinary.js';
 
+const isCloudinaryConfigured = Boolean(
+  process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET
+);
+
 // Use temporary memory storage to hold buffered file data
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -22,6 +28,12 @@ const uploadPropertyImages = async (req, res, next) => {
     if (!req.files || req.files.length === 0) {
       req.imageUrls = [];
       return next();
+    }
+
+    if (!isCloudinaryConfigured) {
+      return res.status(500).json({
+        message: 'Cloudinary credentials are not configured. Image upload cannot proceed.',
+      });
     }
 
     // Map through files and upload buffers directly into Cloudinary stream
