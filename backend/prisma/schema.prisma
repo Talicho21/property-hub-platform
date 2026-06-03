@@ -1,7 +1,7 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL") // Look! We added this line back for Prisma 5 compatibility
-  directUrl = env("DIRECT_URL") // Look! We added this line so migrations bypass the pooler proxy
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -17,14 +17,14 @@ enum Role {
 
 // 2. User Table Model
 model User {
-  id         String     @id @default(uuid())
-  email      String     @unique
+  id         String   @id @default(uuid())
+  email      String   @unique
   password   String
   name       String
-  role       Role       @default(TENANT)
-  isApproved Boolean    @default(true)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  role       Role     @default(TENANT)
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
   
   // Relations: A Landlord owns properties; a Tenant has saved favorites
   properties Property[]
@@ -33,19 +33,19 @@ model User {
 
 // 3. Property Table Model
 model Property {
-  id          String     @id @default(uuid())
+  id          String   @id @default(uuid())
   title       String
   description String
   price       Float
   location    String
-  images      String[]   // Array to hold multiple Cloudinary image URLs
-  isPublished  Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  images      String[] // Array to hold multiple Cloudinary image URLs
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Multi-Tenant Isolation: Tracks who owns this record explicitly
   landlordId  String
-  landlord    User       @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  landlord    User     @relation(fields: [landlordId], references: [id], onDelete: Cascade)
   
   // Relations
   favoritedBy Favorite[]
@@ -53,8 +53,8 @@ model Property {
 
 // 4. Favorites Junction Table (Supports Optimistic UI updates seamlessly)
 model Favorite {
-  id         String   @id @default(uuid())
-  createdAt  DateTime @default(now())
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
 
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
