@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('DASHBOARD'); // 'DASHBOARD', 'LISTINGS', 'SETTINGS'
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [feedError, setFeedError] = useState('');
@@ -348,41 +349,58 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans antialiased">
+    <div className="flex min-h-screen flex-col lg:flex-row bg-slate-50 font-sans antialiased">
       {/* 1. STICKY LEFT SIDEBAR MENU */}
-      <aside className="h-screen sticky top-0 w-64 bg-slate-900 text-white flex flex-col justify-between p-8 z-50">
-        <div className="space-y-10">
-          {/* Brand Identity */}
+      <aside className="w-full lg:w-64 bg-slate-900 text-white flex flex-col justify-between p-5 sm:p-6 lg:p-8 z-50 lg:h-screen lg:sticky lg:top-0">
+        <div className="flex items-center justify-between gap-4 mb-6 lg:mb-8">
           <div className="flex items-center space-x-3">
             <span className="text-3xl">🏠</span>
             <span className="text-xl font-black tracking-tighter bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
               PropertyHub
             </span>
           </div>
+          <button
+            onClick={() => setIsMenuOpen((current) => !current)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white transition hover:bg-white/20 lg:hidden"
+            aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+          >
+            {isMenuOpen ? '✕' : '☰'}
+          </button>
+        </div>
 
+        <div className={`${isMenuOpen ? 'block' : 'hidden'} lg:block space-y-10`}>
           {/* Navigation Link Stack */}
-          <nav className="flex flex-col space-y-2">
-            <button 
-              onClick={() => setActiveTab('DASHBOARD')}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
+          <nav className="flex flex-col gap-2">
+            <button
+              onClick={() => {
+                setActiveTab('DASHBOARD');
+                setIsMenuOpen(false);
+              }}
+              className={`w-full text-left flex items-center space-x-3 rounded-xl px-4 py-3 text-sm font-bold transition-all ${
                 activeTab === 'DASHBOARD' ? 'bg-blue-600/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
               <span>📊</span>
               <span>Dashboard</span>
             </button>
-            <button 
-              onClick={() => setActiveTab('LISTINGS')}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
+            <button
+              onClick={() => {
+                setActiveTab('LISTINGS');
+                setIsMenuOpen(false);
+              }}
+              className={`w-full text-left flex items-center space-x-3 rounded-xl px-4 py-3 text-sm font-bold transition-all ${
                 activeTab === 'LISTINGS' ? 'bg-blue-600/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
               <span>🏢</span>
               <span>Listings View</span>
             </button>
-            <button 
-              onClick={() => setActiveTab('SETTINGS')}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
+            <button
+              onClick={() => {
+                setActiveTab('SETTINGS');
+                setIsMenuOpen(false);
+              }}
+              className={`w-full text-left flex items-center space-x-3 rounded-xl px-4 py-3 text-sm font-bold transition-all ${
                 activeTab === 'SETTINGS' ? 'bg-blue-600/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
@@ -392,14 +410,14 @@ export default function Dashboard() {
           </nav>
         </div>
 
-        <div className="space-y-6">
-          <div className="px-4 py-3.5 bg-slate-800/50 border border-slate-700/50 rounded-2xl">
+        <div className="mt-6 lg:mt-0 space-y-4">
+          <div className="rounded-2xl border border-slate-700/50 bg-slate-800/50 px-4 py-3">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Active Scope</p>
             <p className="text-xs font-bold text-blue-400 truncate">{normalizedRole} WORKSPACE</p>
           </div>
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center space-x-2 px-4 py-3.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl font-bold text-sm transition-all group"
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-500/10 px-4 py-3.5 text-sm font-bold text-red-500 transition hover:bg-red-500 hover:text-white"
           >
             <span>🚪</span>
             <span>Sign Out</span>
@@ -408,9 +426,9 @@ export default function Dashboard() {
       </aside>
 
       {/* 2. FLEXIBLE MAIN CONTENT PANEL */}
-      <main className="flex-1 min-h-screen overflow-y-auto px-10 py-12">
+      <main className="flex-1 min-h-screen overflow-y-auto px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
         {/* Custom Header with REFRESH BUTTON */}
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-10">
           <div>
             <h2 className="text-3xl font-black text-slate-900 tracking-tight">
               Welcome Back, {user?.name}!

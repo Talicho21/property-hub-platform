@@ -1,0 +1,1 @@
+const pkg = require(" @prisma/client\); const {PrismaClient} = pkg; const prisma = new PrismaClient(); prisma.user.findMany().then(users => { console.log(JSON.stringify(users, null, 2)); return prisma.(); }).catch(err => { console.error(err); prisma.(); process.exit(1); });
